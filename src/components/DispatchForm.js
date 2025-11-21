@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -13,7 +13,7 @@ import {
   InputLabel,
   Select,
   Alert,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Send,
   Person,
@@ -21,38 +21,43 @@ import {
   LocationOn,
   Phone,
   Emergency,
-} from '@mui/icons-material';
-import { dispatchAPI } from '../services/api';
+} from "@mui/icons-material";
+import { dispatchAPI } from "../services/api";
 
 /**
  * DispatchForm Component
  * Auto-filled form with patient details extracted from AI transcription
  * Allows manual editing before dispatch
  */
-const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) => {
+const DispatchForm = ({
+  extractedData,
+  selectedAmbulance,
+  onDispatchSuccess,
+}) => {
   const [formData, setFormData] = useState({
     // Patient Information
-    patientName: '',
-    patientAge: '',
-    patientGender: '',
-    
+    patientName: "",
+    patientAge: "",
+    patientGender: "",
+    patientPhone: "",
+
     // Emergency Details
-    emergencyType: '',
-    condition: '',
-    severity: 'moderate',
+    emergencyType: "",
+    condition: "",
+    severity: "moderate",
     specialRequirements: [],
-    
+
     // Location
-    address: '',
-    landmark: '',
-    
+    address: "",
+    landmark: "",
+
     // Caller Information
-    callerName: '',
-    callerRelation: '',
-    contactNumber: '',
-    
+    callerName: "",
+    callerRelation: "",
+    contactNumber: "",
+
     // Additional
-    additionalNotes: '',
+    additionalNotes: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,41 +65,53 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
 
   // Special requirements options
   const specialRequirementsOptions = [
-    'Oxygen Support',
-    'Ventilator',
-    'Cardiac Support',
-    'Wheelchair',
-    'Stretcher',
-    'Pediatric Care',
-    'Critical Care',
-    'Blood Bank',
-    'Trauma Care',
+    "Oxygen Support",
+    "Ventilator",
+    "Cardiac Support",
+    "Wheelchair",
+    "Stretcher",
+    "Pediatric Care",
+    "Critical Care",
+    "Blood Bank",
+    "Trauma Care",
   ];
 
   // Auto-fill form when extracted data is received
   useEffect(() => {
     if (extractedData && extractedData.extracted_data) {
       const data = extractedData.extracted_data;
-      
+
       // Map the extracted data to form fields
       setFormData({
-        patientName: data.patient_name || '',
-        patientAge: data.patient_age ? String(data.patient_age) : '',
-        patientGender: data.patient_gender || '',
-        emergencyType: data.emergency_type || '',
-        condition: Array.isArray(data.symptoms) ? data.symptoms.join(', ') : (data.symptoms || ''),
-        severity: data.severity ? data.severity.toLowerCase() : 'moderate',
-        specialRequirements: Array.isArray(data.special_requirements) ? data.special_requirements : [],
-        address: data.location || '',
-        landmark: '',
-        callerName: data.caller_name || '',
-        callerRelation: '',
-        contactNumber: data.caller_phone || '',
+        patientName: data.patient_name || "",
+        patientAge: data.patient_age ? String(data.patient_age) : "",
+        patientGender: data.patient_gender || "",
+        patientPhone: data.patient_phone || "",
+        emergencyType: data.emergency_type || "",
+        condition: Array.isArray(data.symptoms)
+          ? data.symptoms.join(", ")
+          : data.symptoms || "",
+        severity: data.severity ? data.severity.toLowerCase() : "moderate",
+        specialRequirements: Array.isArray(data.special_requirements)
+          ? data.special_requirements
+          : [],
+        address: data.location || "",
+        landmark: "",
+        callerName: data.caller_name || "",
+        callerRelation: "",
+        contactNumber: data.caller_phone || "",
         additionalNotes: [
-          data.consciousness ? `Consciousness: ${data.consciousness}` : '',
-          data.breathing ? `Breathing: ${data.breathing}` : '',
-          extractedData.transcription ? `Call transcript: ${extractedData.transcription.substring(0, 200)}...` : ''
-        ].filter(Boolean).join('\n'),
+          data.consciousness ? `Consciousness: ${data.consciousness}` : "",
+          data.breathing ? `Breathing: ${data.breathing}` : "",
+          extractedData.transcription
+            ? `Call transcript: ${extractedData.transcription.substring(
+                0,
+                200
+              )}...`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
       });
     }
   }, [extractedData]);
@@ -108,9 +125,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedAmbulance) {
-      setSubmitError('Please select an ambulance from the map');
+      setSubmitError("Please select an ambulance from the map");
       return;
     }
 
@@ -124,6 +141,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
           patient_name: formData.patientName,
           patient_age: parseInt(formData.patientAge) || null,
           patient_gender: formData.patientGender,
+          patient_phone: formData.patientPhone,
           emergency_type: formData.emergencyType,
           condition: formData.condition,
           severity: formData.severity,
@@ -142,34 +160,40 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
       };
 
       const response = await dispatchAPI.createDispatch(dispatchData);
-      
+
       if (onDispatchSuccess) {
         onDispatchSuccess(response);
       }
-
     } catch (error) {
-      setSubmitError(error.response?.data?.message || 'Failed to dispatch ambulance. Please try again.');
-      console.error('Dispatch error:', error);
+      setSubmitError(
+        error.response?.data?.message ||
+          "Failed to dispatch ambulance. Please try again."
+      );
+      console.error("Dispatch error:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Paper elevation={0} sx={{ p: 3, border: '1px solid #e5e7eb' }}>
+    <Paper elevation={0} sx={{ p: 3, border: "1px solid #e5e7eb" }}>
       <Typography variant="h6" gutterBottom fontWeight={600}>
         📋 Patient & Emergency Details
       </Typography>
-      
+
       {extractedData && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          ✨ Form auto-filled from call recording. Please review and edit if needed.
+          ✨ Form auto-filled from call recording. Please review and edit if
+          needed.
         </Alert>
       )}
 
       <Box component="form" onSubmit={handleSubmit}>
         {/* Patient Information */}
-        <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ mt: 2, mb: 1, display: "flex", alignItems: "center" }}
+        >
           <Person sx={{ mr: 1 }} /> Patient Information
         </Typography>
         <Grid container spacing={2}>
@@ -178,7 +202,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Patient Name"
               value={formData.patientName}
-              onChange={(e) => handleInputChange('patientName', e.target.value)}
+              onChange={(e) => handleInputChange("patientName", e.target.value)}
               required
             />
           </Grid>
@@ -188,7 +212,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               label="Age"
               type="number"
               value={formData.patientAge}
-              onChange={(e) => handleInputChange('patientAge', e.target.value)}
+              onChange={(e) => handleInputChange("patientAge", e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -197,7 +221,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               <Select
                 value={formData.patientGender}
                 label="Gender"
-                onChange={(e) => handleInputChange('patientGender', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("patientGender", e.target.value)
+                }
               >
                 <MenuItem value="male">Male</MenuItem>
                 <MenuItem value="female">Female</MenuItem>
@@ -205,10 +231,29 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Patient Phone Number"
+              value={formData.patientPhone}
+              onChange={(e) =>
+                handleInputChange("patientPhone", e.target.value)
+              }
+              placeholder="e.g., +1234567890"
+              InputProps={{
+                startAdornment: (
+                  <Phone sx={{ mr: 1, color: "action.active" }} />
+                ),
+              }}
+            />
+          </Grid>
         </Grid>
 
         {/* Emergency Details */}
-        <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ mt: 3, mb: 1, display: "flex", alignItems: "center" }}
+        >
           <LocalHospital sx={{ mr: 1 }} /> Emergency Details
         </Typography>
         <Grid container spacing={2}>
@@ -217,7 +262,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Emergency Type"
               value={formData.emergencyType}
-              onChange={(e) => handleInputChange('emergencyType', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("emergencyType", e.target.value)
+              }
               placeholder="e.g., Heart Attack, Accident, etc."
               required
             />
@@ -228,18 +275,33 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               <Select
                 value={formData.severity}
                 label="Severity"
-                onChange={(e) => handleInputChange('severity', e.target.value)}
+                onChange={(e) => handleInputChange("severity", e.target.value)}
               >
                 <MenuItem value="critical">
-                  <Chip label="Critical" color="error" size="small" sx={{ mr: 1 }} />
+                  <Chip
+                    label="Critical"
+                    color="error"
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
                   Critical
                 </MenuItem>
                 <MenuItem value="serious">
-                  <Chip label="Serious" color="warning" size="small" sx={{ mr: 1 }} />
+                  <Chip
+                    label="Serious"
+                    color="warning"
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
                   Serious
                 </MenuItem>
                 <MenuItem value="moderate">
-                  <Chip label="Moderate" color="info" size="small" sx={{ mr: 1 }} />
+                  <Chip
+                    label="Moderate"
+                    color="info"
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
                   Moderate
                 </MenuItem>
               </Select>
@@ -250,7 +312,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Patient Condition"
               value={formData.condition}
-              onChange={(e) => handleInputChange('condition', e.target.value)}
+              onChange={(e) => handleInputChange("condition", e.target.value)}
               multiline
               rows={2}
               placeholder="Describe the patient's current condition"
@@ -262,7 +324,12 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               multiple
               options={specialRequirementsOptions}
               value={formData.specialRequirements}
-              onChange={(e, newValue) => handleInputChange('specialRequirements', newValue)}
+              onChange={(e, newValue) =>
+                handleInputChange("specialRequirements", newValue)
+              }
+              ListboxProps={{
+                style: { maxHeight: 250 },
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -273,6 +340,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip
+                    key={option}
                     label={option}
                     {...getTagProps({ index })}
                     color="primary"
@@ -280,12 +348,24 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
                   />
                 ))
               }
+              sx={{
+                "& .MuiAutocomplete-inputRoot": {
+                  minHeight: "56px",
+                  alignItems: "center",
+                },
+                "& .MuiAutocomplete-input": {
+                  minHeight: "40px",
+                },
+              }}
             />
           </Grid>
         </Grid>
 
         {/* Location */}
-        <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ mt: 3, mb: 1, display: "flex", alignItems: "center" }}
+        >
           <LocationOn sx={{ mr: 1 }} /> Pickup Location
         </Typography>
         <Grid container spacing={2}>
@@ -294,7 +374,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Address"
               value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
+              onChange={(e) => handleInputChange("address", e.target.value)}
               multiline
               rows={2}
               required
@@ -305,14 +385,17 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Landmark"
               value={formData.landmark}
-              onChange={(e) => handleInputChange('landmark', e.target.value)}
+              onChange={(e) => handleInputChange("landmark", e.target.value)}
               placeholder="e.g., Near XYZ Hospital"
             />
           </Grid>
         </Grid>
 
         {/* Caller Information */}
-        <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ mt: 3, mb: 1, display: "flex", alignItems: "center" }}
+        >
           <Phone sx={{ mr: 1 }} /> Caller Information
         </Typography>
         <Grid container spacing={2}>
@@ -321,7 +404,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Caller Name"
               value={formData.callerName}
-              onChange={(e) => handleInputChange('callerName', e.target.value)}
+              onChange={(e) => handleInputChange("callerName", e.target.value)}
               required
             />
           </Grid>
@@ -330,7 +413,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Relation to Patient"
               value={formData.callerRelation}
-              onChange={(e) => handleInputChange('callerRelation', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("callerRelation", e.target.value)
+              }
               placeholder="e.g., Father, Friend"
             />
           </Grid>
@@ -339,7 +424,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Contact Number"
               value={formData.contactNumber}
-              onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("contactNumber", e.target.value)
+              }
               required
             />
           </Grid>
@@ -352,7 +439,9 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
               fullWidth
               label="Additional Notes"
               value={formData.additionalNotes}
-              onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("additionalNotes", e.target.value)
+              }
               multiline
               rows={2}
               placeholder="Any other important information"
@@ -370,7 +459,8 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
         {/* Selected Ambulance Info */}
         {selectedAmbulance && (
           <Alert severity="success" sx={{ mt: 2 }}>
-            🚑 Selected Ambulance: {selectedAmbulance.vehicle_number} - ETA: {selectedAmbulance.eta || 'Calculating...'}
+            🚑 Selected Ambulance: {selectedAmbulance.vehicle_number} - ETA:{" "}
+            {selectedAmbulance.eta || "Calculating..."}
           </Alert>
         )}
 
@@ -386,7 +476,7 @@ const DispatchForm = ({ extractedData, selectedAmbulance, onDispatchSuccess }) =
           disabled={isSubmitting || !selectedAmbulance}
           sx={{ mt: 3, py: 1.5 }}
         >
-          {isSubmitting ? 'Dispatching...' : 'Dispatch Ambulance'}
+          {isSubmitting ? "Dispatching..." : "Dispatch Ambulance"}
         </Button>
       </Box>
     </Paper>
