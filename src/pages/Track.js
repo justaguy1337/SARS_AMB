@@ -11,11 +11,7 @@ import {
   Button,
   IconButton,
 } from "@mui/material";
-import {
-  Close,
-  LocalShipping,
-  CheckCircle,
-} from "@mui/icons-material";
+import { Close, LocalShipping, CheckCircle } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import TopNavBar from "../components/TopNavBar";
