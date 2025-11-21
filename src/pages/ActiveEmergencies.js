@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -66,6 +66,7 @@ const ActiveEmergencies = () => {
   const [selectedEmergency, setSelectedEmergency] = useState(null);
   const [emergencyMap, setEmergencyMap] = useState(null);
   const [detailMap, setDetailMap] = useState(null);
+  const [currentTime, setCurrentTime] = useState(Date.now()); // For real-time updates
 
   // New emergency form state
   const [newEmergencyForm, setNewEmergencyForm] = useState({
@@ -97,92 +98,119 @@ const ActiveEmergencies = () => {
   const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
   const [routeMap, setRouteMap] = useState(null);
 
-  // Mock data
-  const mockEmergencies = [
-    {
-      id: "EMG-001",
-      type: "Heart Attack",
-      description: "Patient experiencing severe chest pain",
-      priority: "critical",
-      status: "en_route",
-      location: {
-        address: "Connaught Place, New Delhi",
-        latitude: 28.6289,
-        longitude: 77.2065,
+  // Mock data - use useMemo to prevent recreating on every render
+  const mockEmergencies = useMemo(() => {
+    const now = Date.now();
+    return [
+      {
+        id: "EMG-001",
+        type: "Heart Attack",
+        description: "Patient experiencing severe chest pain",
+        priority: "critical",
+        status: "en_route",
+        location: {
+          address: "Connaught Place, New Delhi",
+          latitude: 28.6289,
+          longitude: 77.2065,
+        },
+        timeReported: new Date(now - 1000 * 60 * 15).toISOString(), // 15 min ago from first load
+        victims: 1,
+        assignedAmbulanceId: "AMB-001",
+        timeEstimatedArrival: "5 min",
+        specialRequirements: ["Cardiac Care"],
       },
-      timeReported: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      victims: 1,
-      assignedAmbulanceId: "AMB-001",
-      timeEstimatedArrival: "5 min",
-      specialRequirements: ["Cardiac Care"],
-    },
-    {
-      id: "EMG-002",
-      type: "Traffic Accident",
-      description: "Multi-vehicle collision on highway",
-      priority: "high",
-      status: "at_scene",
-      location: {
-        address: "India Gate, New Delhi",
-        latitude: 28.6129,
-        longitude: 77.2295,
+      {
+        id: "EMG-002",
+        type: "Traffic Accident",
+        description: "Multi-vehicle collision on highway",
+        priority: "high",
+        status: "at_scene",
+        location: {
+          address: "India Gate, New Delhi",
+          latitude: 28.6129,
+          longitude: 77.2295,
+        },
+        timeReported: new Date(now - 1000 * 60 * 45).toISOString(), // 45 min ago
+        victims: 3,
+        assignedAmbulanceId: "AMB-002",
+        specialRequirements: ["Trauma Team", "Multiple Units"],
       },
-      timeReported: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      victims: 3,
-      assignedAmbulanceId: "AMB-002",
-      specialRequirements: ["Trauma Team", "Multiple Units"],
-    },
-    {
-      id: "EMG-003",
-      type: "Respiratory Distress",
-      description: "Difficulty breathing, elderly patient",
-      priority: "high",
-      status: "awaiting_dispatch",
-      location: {
-        address: "Karol Bagh, New Delhi",
-        latitude: 28.6517,
-        longitude: 77.1909,
+      {
+        id: "EMG-003",
+        type: "Respiratory Distress",
+        description: "Difficulty breathing, elderly patient",
+        priority: "high",
+        status: "awaiting_dispatch",
+        location: {
+          address: "Karol Bagh, New Delhi",
+          latitude: 28.6517,
+          longitude: 77.1909,
+        },
+        timeReported: new Date(now - 1000 * 60 * 8).toISOString(), // 8 min ago
+        victims: 1,
+        specialRequirements: ["Respiratory Support"],
       },
-      timeReported: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-      victims: 1,
-      specialRequirements: ["Respiratory Support"],
-    },
-    {
-      id: "EMG-004",
-      type: "Fall Injury",
-      description: "Elderly patient fell at home",
-      priority: "medium",
-      status: "new",
-      location: {
-        address: "Dwarka, New Delhi",
-        latitude: 28.5921,
-        longitude: 77.046,
+      {
+        id: "EMG-004",
+        type: "Fall Injury",
+        description: "Elderly patient fell at home",
+        priority: "medium",
+        status: "new",
+        location: {
+          address: "Dwarka, New Delhi",
+          latitude: 28.5921,
+          longitude: 77.046,
+        },
+        timeReported: new Date(now - 1000 * 60 * 5).toISOString(), // 5 min ago
+        victims: 1,
+        specialRequirements: ["Geriatric Care"],
       },
-      timeReported: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-      victims: 1,
-      specialRequirements: ["Geriatric Care"],
-    },
-    {
-      id: "EMG-005",
-      type: "Minor Injury",
-      description: "Cut requiring stitches",
-      priority: "low",
-      status: "completed",
-      location: {
-        address: "Nehru Place, New Delhi",
-        latitude: 28.5494,
-        longitude: 77.2501,
+      {
+        id: "EMG-005",
+        type: "Minor Injury",
+        description: "Cut requiring stitches",
+        priority: "low",
+        status: "completed",
+        location: {
+          address: "Nehru Place, New Delhi",
+          latitude: 28.5921,
+          longitude: 77.046,
+        },
+        timeReported: new Date(now - 1000 * 60 * 120).toISOString(), // 2h ago
+        victims: 1,
+        assignedAmbulanceId: "AMB-003",
       },
-      timeReported: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      victims: 1,
-      assignedAmbulanceId: "AMB-003",
-    },
-  ];
+    ];
+  }, []); // Empty dependency array means this only runs once
 
+  // Load emergencies from localStorage or use mock data
   useEffect(() => {
-    setEmergencies(mockEmergencies);
-    setFilteredEmergencies(mockEmergencies);
+    const savedEmergencies = localStorage.getItem("activeEmergencies");
+    if (savedEmergencies) {
+      const parsed = JSON.parse(savedEmergencies);
+      setEmergencies(parsed);
+      setFilteredEmergencies(parsed);
+    } else {
+      setEmergencies(mockEmergencies);
+      setFilteredEmergencies(mockEmergencies);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save emergencies to localStorage whenever they change
+  useEffect(() => {
+    if (emergencies.length > 0) {
+      localStorage.setItem("activeEmergencies", JSON.stringify(emergencies));
+    }
+  }, [emergencies]);
+
+  // Update time every second for live real-time display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
   }, []);
 
   // Handle navigation back from Track page with new emergency
@@ -390,9 +418,19 @@ const ActiveEmergencies = () => {
     return statusMap[status] || status;
   };
 
+  const handleDeleteEmergency = (emergencyId) => {
+    if (
+      window.confirm("Are you sure you want to delete this emergency report?")
+    ) {
+      setEmergencies((prev) => prev.filter((e) => e.id !== emergencyId));
+    }
+  };
+
   const timeSince = (dateString) => {
+    if (!dateString) return "Unknown";
     const date = new Date(dateString);
-    const seconds = Math.floor((new Date() - date) / 1000);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    const seconds = Math.floor((currentTime - date) / 1000);
 
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
@@ -434,13 +472,13 @@ const ActiveEmergencies = () => {
 
     // Create new emergency
     const newEmergency = {
-      id: `EMG-${String(emergencies.length + 1).padStart(3, "0")}`,
+      id: `EMG-${Date.now()}`,
       type: newEmergencyForm.type,
       description: newEmergencyForm.description,
       priority: newEmergencyForm.priority,
       status: "new",
       location: {
-        address: newEmergencyForm.location,
+        address: newEmergencyForm.location || "Location not specified",
         latitude: 28.6139 + (Math.random() - 0.5) * 0.1,
         longitude: 77.209 + (Math.random() - 0.5) * 0.1,
       },
@@ -554,11 +592,18 @@ const ActiveEmergencies = () => {
 
   // Handle ambulance selection workflow
   const handlePickAmbulance = () => {
-    if (!newEmergencyForm.location || !newEmergencyForm.description) {
+    if (!newEmergencyForm.description) {
       alert(
-        "Please fill in at least the location and description before picking an ambulance"
+        "Please fill in at least the description before picking an ambulance"
       );
       return;
+    }
+
+    if (!newEmergencyForm.location) {
+      const proceed = window.confirm(
+        "Location is not specified. Do you want to continue anyway?"
+      );
+      if (!proceed) return;
     }
 
     // Navigate to Track page with emergency data
@@ -762,13 +807,13 @@ const ActiveEmergencies = () => {
 
     // Create emergency with assigned ambulance
     const newEmergency = {
-      id: `EMG-${String(emergencies.length + 1).padStart(3, "0")}`,
+      id: `EMG-${Date.now()}`,
       type: newEmergencyForm.type,
       description: newEmergencyForm.description,
       priority: newEmergencyForm.priority,
       status: "dispatched",
       location: {
-        address: newEmergencyForm.location,
+        address: newEmergencyForm.location || "Location not specified",
         latitude: 28.62,
         longitude: 77.21,
       },
@@ -1155,6 +1200,7 @@ const ActiveEmergencies = () => {
                             size="small"
                             color="primary"
                             onClick={() => handleViewEmergency(emergency)}
+                            title="View Details"
                           >
                             <Visibility fontSize="small" />
                           </IconButton>
@@ -1172,15 +1218,28 @@ const ActiveEmergencies = () => {
                                     state: { emergency },
                                   })
                                 }
+                                title="Track on Map"
                               >
                                 <MapIcon fontSize="small" />
                               </IconButton>
                             )}
                           {!emergency.assignedAmbulanceId && (
-                            <IconButton size="small" color="error">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              title="No Ambulance Assigned"
+                            >
                               <LocalShipping fontSize="small" />
                             </IconButton>
                           )}
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteEmergency(emergency.id)}
+                            title="Delete Emergency"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
