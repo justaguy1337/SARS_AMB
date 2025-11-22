@@ -11,15 +11,11 @@ import {
   Button,
   IconButton,
 } from "@mui/material";
-import {
-  Close,
-  LocalShipping,
-  Navigation,
-  CheckCircle,
-} from "@mui/icons-material";
+import { Close, LocalShipping, CheckCircle } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import TopNavBar from "../components/TopNavBar";
+import { dispatchAPI, ambulanceAPI } from "../services/api";
 
 const Track = () => {
   const location = useLocation();
@@ -43,6 +39,7 @@ const Track = () => {
 
     // Calculate routes
     calculateRoutes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emergencyData]);
 
   useEffect(() => {
@@ -50,6 +47,7 @@ const Track = () => {
       initializeMap();
       mapInitialized.current = true;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ambulanceRoutes]);
 
   useEffect(() => {
@@ -61,6 +59,7 @@ const Track = () => {
     } else if (countdown === 0 && !isDispatching) {
       handleAutoDispatch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown, isAnalyzing]);
 
   const calculateRoutes = () => {
@@ -68,11 +67,11 @@ const Track = () => {
     const patientLocation = { lat: 28.62, lng: 77.21 };
 
     const mockAmbulances = [
-      { id: "AMB-001", lat: 28.635, lng: 77.225, crew: 4, status: "available" },
-      { id: "AMB-002", lat: 28.61, lng: 77.195, crew: 3, status: "available" },
-      { id: "AMB-003", lat: 28.64, lng: 77.23, crew: 4, status: "available" },
-      { id: "AMB-004", lat: 28.605, lng: 77.215, crew: 2, status: "available" },
-      { id: "AMB-005", lat: 28.628, lng: 77.218, crew: 3, status: "available" },
+      { id: "AMB-105", lat: 28.635, lng: 77.225, crew: 4, status: "available" },
+      { id: "AMB-208", lat: 28.61, lng: 77.195, crew: 3, status: "available" },
+      { id: "AMB-312", lat: 28.64, lng: 77.23, crew: 4, status: "available" },
+      { id: "AMB-456", lat: 28.605, lng: 77.215, crew: 2, status: "available" },
+      { id: "AMB-589", lat: 28.628, lng: 77.218, crew: 3, status: "available" },
     ];
 
     const routeColors = ["#FF1744", "#FF6D00", "#FFD600", "#00E676", "#2979FF"];
@@ -263,12 +262,40 @@ const Track = () => {
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAmbulance, isAnalyzing, trackMap]);
 
-  const handleAutoDispatch = () => {
+  const handleAutoDispatch = async () => {
     setIsDispatching(true);
 
-    setTimeout(() => {
+    try {
+      // Fetch ambulance details to get driver phone number
+      const ambulances = await ambulanceAPI.getAllAmbulances();
+      const ambulance = ambulances.find(
+        (amb) => amb.id === selectedAmbulance.ambulanceId
+      );
+
+      if (!ambulance) {
+        alert(`Ambulance ${selectedAmbulance.ambulanceId} not found in system`);
+        setIsDispatching(false);
+        return;
+      }
+
+      // Prepare dispatch data with WhatsApp notification
+      const dispatchData = {
+        ambulance_id: selectedAmbulance.ambulanceId,
+        hospital_name: "AIIMS New Delhi",
+        hospital_address: "Ansari Nagar, New Delhi, Delhi 110029",
+        driver_phone: ambulance.driver.phone,
+        patient_info: `${emergencyData.patientName || "Unknown Patient"} - ${
+          emergencyData.description
+        }`,
+        eta: selectedAmbulance.eta,
+      };
+
+      // Send dispatch with WhatsApp notification
+      const dispatchResponse = await dispatchAPI.createDispatch(dispatchData);
+
       // Create emergency with assigned ambulance
       const newEmergency = {
         id: `EMG-${Date.now()}`,
@@ -290,16 +317,39 @@ const Track = () => {
         additionalNotes: emergencyData.additionalNotes || "",
         assignedAmbulanceId: selectedAmbulance.ambulanceId,
         timeEstimatedArrival: `${selectedAmbulance.eta} min`,
+        dispatchId: dispatchResponse.dispatch_id,
       };
 
+      // Prepare success message with WhatsApp status
+      const whatsappStatus = dispatchResponse.whatsapp_status;
+      let message = `${selectedAmbulance.ambulanceId} dispatched successfully! ETA: ${selectedAmbulance.eta} minutes\n\n`;
+
+      if (whatsappStatus.sent) {
+        message += `✅ WhatsApp sent to ${ambulance.driver.name} (${ambulance.driver.phone})`;
+      } else {
+        message += `⚠️ WhatsApp failed: ${
+          whatsappStatus.error || "Unknown error"
+        }`;
+      }
+
       // Navigate back to Active Emergencies with success message
-      navigate("/active-emergencies", {
-        state: {
-          newEmergency,
-          message: `${selectedAmbulance.ambulanceId} dispatched successfully! ETA: ${selectedAmbulance.eta} minutes`,
-        },
-      });
-    }, 2000);
+      setTimeout(() => {
+        navigate("/active-emergencies", {
+          state: {
+            newEmergency,
+            message: message,
+          },
+        });
+      }, 2000);
+    } catch (error) {
+      console.error("Error dispatching ambulance:", error);
+      alert(
+        `Failed to dispatch ambulance: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+      setIsDispatching(false);
+    }
   };
 
   const handleManualDispatch = () => {

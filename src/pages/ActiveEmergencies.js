@@ -49,7 +49,7 @@ import {
 } from "@mui/icons-material";
 import Sidebar from "../components/Sidebar";
 import TopNavBar from "../components/TopNavBar";
-import { transcriptionAPI } from "../services/api";
+import { transcriptionAPI, dispatchAPI, ambulanceAPI } from "../services/api";
 
 const ActiveEmergencies = () => {
   const navigate = useNavigate();
@@ -799,66 +799,112 @@ const ActiveEmergencies = () => {
     });
   };
 
-  const handleConfirmAmbulance = () => {
+  const handleConfirmAmbulance = async () => {
     if (!selectedAmbulance) {
       alert("No ambulance selected");
       return;
     }
 
-    // Create emergency with assigned ambulance
-    const newEmergency = {
-      id: `EMG-${Date.now()}`,
-      type: newEmergencyForm.type,
-      description: newEmergencyForm.description,
-      priority: newEmergencyForm.priority,
-      status: "dispatched",
-      location: {
-        address: newEmergencyForm.location || "Location not specified",
-        latitude: 28.62,
-        longitude: 77.21,
-      },
-      timeReported: new Date().toISOString(),
-      patientName: newEmergencyForm.patientName || "Unknown",
-      patientAge: newEmergencyForm.patientAge || null,
-      victims: parseInt(newEmergencyForm.victims) || 1,
-      specialRequirements: newEmergencyForm.specialRequirements,
-      additionalNotes: newEmergencyForm.additionalNotes,
-      assignedAmbulanceId: selectedAmbulance.ambulanceId,
-      timeEstimatedArrival: `${selectedAmbulance.eta} min`,
-    };
+    try {
+      // Fetch ambulance details to get driver phone number
+      const ambulances = await ambulanceAPI.getAllAmbulances();
+      const ambulance = ambulances.find(
+        (amb) => amb.id === selectedAmbulance.ambulanceId // Backend uses "id" field
+      );
 
-    setEmergencies([newEmergency, ...emergencies]);
+      if (!ambulance) {
+        alert(`Ambulance ${selectedAmbulance.ambulanceId} not found in system`);
+        return;
+      }
 
-    // Reset all states
-    setNewEmergencyForm({
-      type: "Medical Emergency",
-      priority: "high",
-      description: "",
-      location: "",
-      patientName: "",
-      patientAge: "",
-      patientPhone: "",
-      victims: 1,
-      specialRequirements: [],
-      additionalNotes: "",
-    });
+      // Prepare dispatch data with WhatsApp notification
+      const dispatchData = {
+        ambulance_id: selectedAmbulance.ambulanceId,
+        hospital_name: "AIIMS New Delhi", // Default hospital - you can make this dynamic later
+        hospital_address: "Ansari Nagar, New Delhi, Delhi 110029",
+        driver_phone: ambulance.driver.phone,
+        patient_info: `${newEmergencyForm.patientName || "Unknown Patient"} - ${
+          newEmergencyForm.description
+        }`,
+        eta: selectedAmbulance.eta,
+      };
 
-    setAudioFile(null);
-    setTranscriptionSuccess(false);
-    setTranscriptionError(null);
-    setShowAmbulanceSelection(false);
-    setSelectedAmbulance(null);
-    setAmbulanceRoutes([]);
-    setNewEmergencyModalOpen(false);
+      // Call dispatch API - this will send WhatsApp message automatically
+      const dispatchResponse = await dispatchAPI.createDispatch(dispatchData);
 
-    if (routeMap) {
-      routeMap.remove();
-      setRouteMap(null);
+      // Create emergency with assigned ambulance
+      const newEmergency = {
+        id: `EMG-${Date.now()}`,
+        type: newEmergencyForm.type,
+        description: newEmergencyForm.description,
+        priority: newEmergencyForm.priority,
+        status: "dispatched",
+        location: {
+          address: newEmergencyForm.location || "Location not specified",
+          latitude: 28.62,
+          longitude: 77.21,
+        },
+        timeReported: new Date().toISOString(),
+        patientName: newEmergencyForm.patientName || "Unknown",
+        patientAge: newEmergencyForm.patientAge || null,
+        victims: parseInt(newEmergencyForm.victims) || 1,
+        specialRequirements: newEmergencyForm.specialRequirements,
+        additionalNotes: newEmergencyForm.additionalNotes,
+        assignedAmbulanceId: selectedAmbulance.ambulanceId,
+        timeEstimatedArrival: `${selectedAmbulance.eta} min`,
+        dispatchId: dispatchResponse.dispatch_id,
+      };
+
+      setEmergencies([newEmergency, ...emergencies]);
+
+      // Reset all states
+      setNewEmergencyForm({
+        type: "Medical Emergency",
+        priority: "high",
+        description: "",
+        location: "",
+        patientName: "",
+        patientAge: "",
+        patientPhone: "",
+        victims: 1,
+        specialRequirements: [],
+        additionalNotes: "",
+      });
+
+      setAudioFile(null);
+      setTranscriptionSuccess(false);
+      setTranscriptionError(null);
+      setShowAmbulanceSelection(false);
+      setSelectedAmbulance(null);
+      setAmbulanceRoutes([]);
+      setNewEmergencyModalOpen(false);
+
+      if (routeMap) {
+        routeMap.remove();
+        setRouteMap(null);
+      }
+
+      // Show success message with WhatsApp status
+      const whatsappStatus = dispatchResponse.whatsapp_status;
+      let message = `Emergency created and ${selectedAmbulance.ambulanceId} dispatched! ETA: ${selectedAmbulance.eta} minutes\n\n`;
+
+      if (whatsappStatus.sent) {
+        message += `✅ WhatsApp notification sent to driver ${ambulance.driver.name} (${ambulance.driver.phone})`;
+      } else {
+        message += `⚠️ WhatsApp notification failed: ${
+          whatsappStatus.error || "Unknown error"
+        }`;
+      }
+
+      alert(message);
+    } catch (error) {
+      console.error("Error dispatching ambulance:", error);
+      alert(
+        `Failed to dispatch ambulance: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
     }
-
-    alert(
-      `Emergency created and ${selectedAmbulance.ambulanceId} dispatched! ETA: ${selectedAmbulance.eta} minutes`
-    );
   };
 
   // Initialize route map when ambulance selection is shown

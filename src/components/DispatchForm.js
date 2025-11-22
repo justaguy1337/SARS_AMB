@@ -56,6 +56,13 @@ const DispatchForm = ({
     callerRelation: "",
     contactNumber: "",
 
+    // Hospital Destination
+    hospitalName: "",
+    hospitalAddress: "",
+
+    // Driver Information
+    driverPhone: "",
+
     // Additional
     additionalNotes: "",
   });
@@ -100,6 +107,9 @@ const DispatchForm = ({
         callerName: data.caller_name || "",
         callerRelation: "",
         contactNumber: data.caller_phone || "",
+        hospitalName: "",
+        hospitalAddress: "",
+        driverPhone: "",
         additionalNotes: [
           data.consciousness ? `Consciousness: ${data.consciousness}` : "",
           data.breathing ? `Breathing: ${data.breathing}` : "",
@@ -116,6 +126,16 @@ const DispatchForm = ({
     }
   }, [extractedData]);
 
+  // Auto-fill driver phone when ambulance is selected
+  useEffect(() => {
+    if (selectedAmbulance && selectedAmbulance.driver?.phone) {
+      setFormData((prev) => ({
+        ...prev,
+        driverPhone: selectedAmbulance.driver.phone,
+      }));
+    }
+  }, [selectedAmbulance]);
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -131,13 +151,33 @@ const DispatchForm = ({
       return;
     }
 
+    // Validate required fields for SMS
+    if (!formData.hospitalName || !formData.hospitalAddress) {
+      setSubmitError(
+        "Hospital name and address are required for SMS notification"
+      );
+      return;
+    }
+
+    if (!formData.driverPhone) {
+      setSubmitError("Driver phone number is required for SMS notification");
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
       const dispatchData = {
         ambulance_id: selectedAmbulance.ambulance_id,
-        patient_info: {
+        emergency_id: `EMG-${Date.now()}`,
+        hospital_name: formData.hospitalName,
+        hospital_address: formData.hospitalAddress,
+        driver_phone: formData.driverPhone,
+        patient_info: `${formData.patientName}, ${formData.patientAge} years, ${formData.patientGender}, ${formData.emergencyType} - ${formData.condition}`,
+        eta: selectedAmbulance.eta || "Calculating...",
+        // Additional data for reference
+        patient_details: {
           patient_name: formData.patientName,
           patient_age: parseInt(formData.patientAge) || null,
           patient_gender: formData.patientGender,
@@ -432,6 +472,60 @@ const DispatchForm = ({
           </Grid>
         </Grid>
 
+        {/* Hospital Destination */}
+        <Typography
+          variant="subtitle1"
+          sx={{ mt: 3, mb: 1, display: "flex", alignItems: "center" }}
+        >
+          <LocalHospital sx={{ mr: 1 }} /> Hospital Destination
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Hospital Name"
+              value={formData.hospitalName}
+              onChange={(e) =>
+                handleInputChange("hospitalName", e.target.value)
+              }
+              placeholder="e.g., AIIMS Hospital, Apollo Hospital"
+              required
+              helperText="Required for SMS notification to driver"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Driver Phone Number"
+              value={formData.driverPhone}
+              onChange={(e) => handleInputChange("driverPhone", e.target.value)}
+              placeholder="e.g., +919876543210"
+              required
+              helperText="E.164 format with country code (e.g., +91 for India)"
+              InputProps={{
+                startAdornment: (
+                  <Phone sx={{ mr: 1, color: "action.active" }} />
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Hospital Address"
+              value={formData.hospitalAddress}
+              onChange={(e) =>
+                handleInputChange("hospitalAddress", e.target.value)
+              }
+              multiline
+              rows={2}
+              placeholder="Complete address of the hospital"
+              required
+              helperText="Full address will be sent to the driver via SMS"
+            />
+          </Grid>
+        </Grid>
+
         {/* Additional Notes */}
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -461,6 +555,15 @@ const DispatchForm = ({
           <Alert severity="success" sx={{ mt: 2 }}>
             🚑 Selected Ambulance: {selectedAmbulance.vehicle_number} - ETA:{" "}
             {selectedAmbulance.eta || "Calculating..."}
+            <br />
+            📱 Driver: {selectedAmbulance.driver?.name || "N/A"} - Phone:{" "}
+            {selectedAmbulance.driver?.phone || "Not available"}
+          </Alert>
+        )}
+
+        {!selectedAmbulance && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            ⚠️ Please select an ambulance from the map to continue
           </Alert>
         )}
 
