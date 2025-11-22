@@ -73,6 +73,12 @@ AI-powered emergency ambulance dispatch system with real-time WhatsApp notificat
 - Groq API Key (for AI transcription)
 - TomTom Maps API Key
 
+### 📚 Additional Documentation
+- **[WhatsApp Integration Guide](./WHATSAPP_INTEGRATION_GUIDE.md)** - Detailed setup and troubleshooting for WhatsApp notifications
+- **[Twilio Quickstart](./TWILIO_QUICKSTART.md)** - Quick reference for Twilio setup
+- **[SMS Feature Documentation](./SMS_FEATURE_README.md)** - Complete SMS/WhatsApp feature details
+- **[Frontend Documentation](./README_FRONTEND.md)** - Frontend-specific implementation details
+
 ### Frontend Setup
 
 ```bash
@@ -236,7 +242,7 @@ ETA: 5 min
 
 3. **Configure Backend**
    ```env
-   TWILIO_ACCOUNT_SID=ACb2c5e07531e49df4b7e34ce48ea322ad
+   TWILIO_ACCOUNT_SID=your_account_sid
    TWILIO_AUTH_TOKEN=your_auth_token
    TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
    ```
